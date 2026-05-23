@@ -47,21 +47,6 @@ def _write_manifest(raw_dir: Path, *, pinned_sha: str | None = None) -> None:
     manifest_path(raw_dir).write_text(json.dumps([entry]), encoding="utf-8")
 
 
-@pytest.fixture
-def raw_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    d = tmp_path / "raw"
-    d.mkdir()
-    # Override settings to point at this tmp dir. Local import is intentional
-    # so each fixture invocation gets a freshly-resettable module reference.
-    from common import settings as settings_mod  # noqa: PLC0415
-
-    monkeypatch.setattr(settings_mod, "_cached", None)
-    monkeypatch.setenv("RAW_DIR", str(d))
-    monkeypatch.setenv("LOG_DIR", str(tmp_path / "logs"))
-    monkeypatch.setenv("PROCESSED_DIR", str(tmp_path / "processed"))
-    return d
-
-
 @respx.mock
 def test_fetch_writes_file_and_pins_sha(raw_dir: Path) -> None:
     _write_manifest(raw_dir)

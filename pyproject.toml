@@ -45,6 +45,7 @@ dev = [
     "pytest-cov>=5,<6",
     "pytest-asyncio>=0.23,<1",
     "respx>=0.21,<1",        # mock httpx in tests
+    "fpdf2>=2.7,<3",         # generate tiny PDFs on the fly for parser tests
     "ruff>=0.5,<1",
     "mypy>=1.10,<2",
     "pip-audit>=2.7,<3",
@@ -101,7 +102,7 @@ disallow_untyped_decorators = true
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["FlagEmbedding.*", "sentence_transformers.*", "langdetect.*", "pypdfium2.*"]
+module = ["FlagEmbedding.*", "sentence_transformers.*", "langdetect.*", "pypdfium2.*", "fpdf.*"]
 ignore_missing_imports = true
 
 # -------------------- pytest --------------------
