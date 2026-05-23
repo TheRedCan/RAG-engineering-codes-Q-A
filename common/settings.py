@@ -49,6 +49,12 @@ class Settings(BaseSettings):
     embed_device: str = Field(default="cpu", pattern=r"^(cpu|cuda|cuda:\d+)$")
     rerank_device: str = Field(default="cpu", pattern=r"^(cpu|cuda|cuda:\d+)$")
 
+    # chunking tuning. Character-based for v0.1 (no tokenizer dep);
+    # ~4 chars/token in English so 2048 ≈ 512 tokens, a common RAG sweet spot.
+    chunk_target_chars: int = Field(default=2048, ge=100, le=10000)
+    chunk_overlap_chars: int = Field(default=200, ge=0, le=2000)
+    chunk_min_size_chars: int = Field(default=100, ge=1)
+
     # retrieval tuning
     retrieve_top_k: int = Field(default=30, ge=1, le=200)
     rerank_top_k: int = Field(default=6, ge=1, le=50)

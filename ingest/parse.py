@@ -34,10 +34,10 @@ from typing import TYPE_CHECKING
 
 import pypdfium2 as pdfium
 import typer
-from langdetect import DetectorFactory, LangDetectException, detect
 from pypdfium2 import PdfiumError
 
 from common.errors import LanguageMismatchError, ParseError
+from common.language import detect_language
 from common.logging import configure_logging, logger
 from common.manifest import load_manifest
 from common.models import Language, ParsedPage, doc_id_path
@@ -45,23 +45,6 @@ from common.settings import get_settings
 
 if TYPE_CHECKING:
     from common.models import DocumentMeta
-
-# Seed langdetect for reproducible per-page detection. langdetect's default
-# behavior is non-deterministic; without a seed, the same input can produce
-# different labels across runs.
-DetectorFactory.seed = 0
-
-# Pages with fewer than this many non-whitespace characters cannot be reliably
-# language-classified. They are recorded as Language.UNKNOWN rather than guessed.
-_MIN_CHARS_FOR_DETECTION = 30
-
-# langdetect ISO codes we map onto our supported enum. Anything outside this
-# set (fr, de, zh, ...) becomes UNKNOWN — the project is bilingual by design
-# and we don't want to silently accept a third language.
-_LANGDETECT_TO_ENUM: dict[str, Language] = {
-    "ar": Language.AR,
-    "en": Language.EN,
-}
 
 
 app = typer.Typer(add_completion=False, help="Parse PDFs into per-page JSONL records.")
@@ -81,19 +64,6 @@ class ParseResult:
 
 
 # -------------------- pure helpers --------------------
-
-
-def _detect_language(text: str) -> Language:
-    """Detect language from text, returning ``Language.UNKNOWN`` for inputs
-    too short to classify reliably or that langdetect cannot handle.
-    """
-    if len(text.strip()) < _MIN_CHARS_FOR_DETECTION:
-        return Language.UNKNOWN
-    try:
-        code = detect(text)
-    except LangDetectException:
-        return Language.UNKNOWN
-    return _LANGDETECT_TO_ENUM.get(code, Language.UNKNOWN)
 
 
 def _document_majority_language(pages: list[ParsedPage]) -> Language:
@@ -161,7 +131,7 @@ def parse_pdf(path: Path, doc_id: str) -> Iterator[ParsedPage]:
             doc_id=doc_id,
             page_number=i + 1,
             text=text,
-            detected_language=_detect_language(text),
+            detected_language=detect_language(text),
         )
 
 

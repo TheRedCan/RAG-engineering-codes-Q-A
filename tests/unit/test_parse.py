@@ -16,11 +16,11 @@ from pathlib import Path
 import pytest
 
 from common.errors import LanguageMismatchError, ParseError
+from common.language import detect_language
 from common.manifest import manifest_path
 from common.models import CodeFamily, DocumentMeta, Language, ParsedPage
 from ingest import parse as parse_mod
 from ingest.parse import (
-    _detect_language,
     _document_majority_language,
     _verify_language,
     parse_all,
@@ -41,27 +41,27 @@ _AR_TEXT = "هذا نص باللغة العربية لأغراض الاختبا�
 # ==================== group 1: pure helpers ====================
 
 
-def test_detect_language_english() -> None:
-    assert _detect_language(_EN_TEXT) == Language.EN
+def testdetect_language_english() -> None:
+    assert detect_language(_EN_TEXT) == Language.EN
 
 
-def test_detect_language_arabic() -> None:
-    assert _detect_language(_AR_TEXT) == Language.AR
+def testdetect_language_arabic() -> None:
+    assert detect_language(_AR_TEXT) == Language.AR
 
 
-def test_detect_language_too_short_returns_unknown() -> None:
-    assert _detect_language("hi") == Language.UNKNOWN
-    assert _detect_language("   ") == Language.UNKNOWN
-    assert _detect_language("") == Language.UNKNOWN
+def testdetect_language_too_short_returns_unknown() -> None:
+    assert detect_language("hi") == Language.UNKNOWN
+    assert detect_language("   ") == Language.UNKNOWN
+    assert detect_language("") == Language.UNKNOWN
 
 
-def test_detect_language_unsupported_returns_unknown() -> None:
+def testdetect_language_unsupported_returns_unknown() -> None:
     # French — not in our supported set.
     fr = (
         "Les considérations de conception sismique pour les nouveaux bâtiments "
         "comprennent les combinaisons de charges et la caractérisation du site."
     )
-    assert _detect_language(fr) == Language.UNKNOWN
+    assert detect_language(fr) == Language.UNKNOWN
 
 
 def test_document_majority_language_picks_most_common() -> None:
