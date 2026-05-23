@@ -1,0 +1,41 @@
+[
+  {
+    "doc_id": "fema-p-2082-vol1-2020",
+    "family": "fema",
+    "code_number": "P-2082",
+    "edition_year": 2020,
+    "variant": "Vol1",
+    "title_en": "NEHRP Recommended Seismic Provisions for New Buildings and Other Structures — Volume I: Part 1 Provisions, Part 2 Commentary (2020 Edition)",
+    "title_ar": null,
+    "source_url": "https://www.fema.gov/sites/default/files/2020-10/fema_2020-nehrp-provisions_part-1-and-part-2.pdf",
+    "expected_language": "en",
+    "sha256": null,
+    "license_note": "US Federal Emergency Management Agency. Public domain (US Govt work)."
+  },
+  {
+    "doc_id": "fema-nehrp-design-examples-vol1-2020",
+    "family": "fema",
+    "code_number": "P-2082-DE",
+    "edition_year": 2020,
+    "variant": "Vol1",
+    "title_en": "2020 NEHRP Recommended Seismic Provisions: Design Examples, Training Materials and Design Flow Charts — Volume 1",
+    "title_ar": null,
+    "source_url": "https://www.fema.gov/sites/default/files/documents/fema_nehrp_design-examples-training-materials_volume-1.pdf",
+    "expected_language": "en",
+    "sha256": null,
+    "license_note": "US Federal Emergency Management Agency. Public domain (US Govt work)."
+  },
+  {
+    "doc_id": "nist-tn-2209-2022",
+    "family": "nist",
+    "code_number": "TN-2209",
+    "edition_year": 2022,
+    "variant": null,
+    "title_en": "Assessment of Resilience in Codes, Standards, Regulations, and Best Practices for Buildings and Infrastructure Systems (NIST Technical Note 2209, April 2022)",
+    "title_ar": null,
+    "source_url": "https://nvlpubs.nist.gov/nistpubs/TechnicalNotes/NIST.TN.2209.pdf",
+    "expected_language": "en",
+    "sha256": null,
+    "license_note": "US National Institute of Standards and Technology. Public domain (US Govt work)."
+  }
+]

@@ -1,0 +1,58 @@
+# --- Copyrighted / large content (NEVER commit) ---
+data/raw/*
+!data/raw/MANIFEST.md
+!data/raw/manifest.json
+!data/raw/.gitkeep
+# manifest.lock.json stays gitignored — it's per-user pinned hashes
+data/processed/
+index/
+models/
+*.gguf
+*.bin
+*.safetensors
+*.pdf
+
+# --- Secrets ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.streamlit/secrets.toml
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.uv/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+
+# --- IDE / OS ---
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# --- Logs ---
+*.log
+logs/
+
+# --- Local notebooks ---
+*.ipynb
+.ipynb_checkpoints/

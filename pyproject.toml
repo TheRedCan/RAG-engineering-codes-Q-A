@@ -1,0 +1,119 @@
+[project]
+name = "engineering-codes-rag"
+version = "0.0.1"
+description = "Local bilingual (Arabic/English) RAG Q&A system for building-code and technical engineering documents. Demo corpus: FEMA + NIST public-domain works; bring-your-own supported for SBC and ECP."
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Omar Bassel" }]
+
+dependencies = [
+    # --- Core runtime ---
+    "pydantic>=2.7,<3",
+    "pydantic-settings>=2.3,<3",
+    "loguru>=0.7,<1",
+    "httpx>=0.27,<1",
+    "tenacity>=8.3,<9",
+    "typer>=0.12,<1",
+    "rich>=13.7,<14",
+]
+
+[project.optional-dependencies]
+# Stage-specific extras keep each concern isolated.
+# Install only what you need for the stage you're running.
+ingest = [
+    "pypdfium2>=4.30,<5",   # text + structure extraction; license-clean (BSD-3) vs PyMuPDF (AGPL)
+    "pdfminer.six>=20231228",
+    "langdetect>=1.0.9,<2",
+]
+embed = [
+    "sentence-transformers>=3.0,<4",
+    "torch>=2.3,<3",
+    "FlagEmbedding>=1.2.10,<2",
+]
+retrieval = [
+    "qdrant-client>=1.10,<2",
+]
+generation = [
+    # Ollama OpenAI-compatible API is hit via httpx; no extra deps needed.
+]
+app = [
+    "streamlit>=1.36,<2",
+]
+dev = [
+    "pytest>=8.2,<9",
+    "pytest-cov>=5,<6",
+    "pytest-asyncio>=0.23,<1",
+    "respx>=0.21,<1",        # mock httpx in tests
+    "ruff>=0.5,<1",
+    "mypy>=1.10,<2",
+    "pip-audit>=2.7,<3",
+    "pre-commit>=3.7,<4",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["common", "ingest", "retrieval", "generation", "eval", "app"]
+
+# -------------------- ruff --------------------
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+# Enforce "no silent failures" + general hygiene.
+select = [
+    "E", "F", "W",      # pycodestyle / pyflakes
+    "I",                # isort
+    "B",                # bugbear
+    "BLE",              # blind-except (no `except:` / `except Exception: pass`)
+    "TRY",              # tryceratops — exception anti-patterns
+    "RET",              # return statement hygiene
+    "S",                # bandit-style security checks
+    "SIM",              # simplify
+    "UP",               # pyupgrade
+    "PTH",              # use pathlib
+    "ARG",              # unused arguments
+    "ERA",              # commented-out code
+    "PL",               # pylint subset
+    "RUF",
+]
+ignore = [
+    "TRY003",  # long messages in raised exceptions — fine for our error types
+    "PLR0913", # too many args — allowed for typer commands
+    "S101",   # asserts allowed in our code as invariant guards
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "PLR2004", "ARG001", "ARG002"]
+
+# -------------------- mypy --------------------
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unused_ignores = true
+warn_return_any = true
+warn_unreachable = true
+disallow_untyped_decorators = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["FlagEmbedding.*", "sentence_transformers.*", "langdetect.*", "pypdfium2.*"]
+ignore_missing_imports = true
+
+# -------------------- pytest --------------------
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config --cov=common --cov=ingest --cov=retrieval --cov=generation --cov-report=term-missing --cov-fail-under=70"
+markers = [
+    "integration: requires external services (Qdrant, Ollama, network)",
+    "slow: takes more than a few seconds",
+]
+filterwarnings = [
+    "error",                                  # warnings are errors — no silent deprecations
+    "ignore::pytest.PytestCacheWarning",      # Windows-only cache rename race; not actionable
+]
