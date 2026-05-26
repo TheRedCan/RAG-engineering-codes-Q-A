@@ -64,9 +64,14 @@ class Settings(BaseSettings):
     # CPU runs on a 16 GB machine (attention memory is O(seq²)).
     embed_max_length: int = Field(default=1024, ge=128, le=8192)
 
-    # retrieval tuning
-    retrieve_top_k: int = Field(default=30, ge=1, le=200)
-    rerank_top_k: int = Field(default=6, ge=1, le=50)
+    # retrieval tuning. retrieve_top_k=50 is wide enough to include
+    # sparse-only-dominant chunks (e.g. equation listings whose tokens
+    # don't match the dense embedding of a natural-language query but
+    # which sparse retrieval catches). rerank_top_k=8 gives the LLM
+    # room to draw both reference text AND substantive content without
+    # blowing the context window.
+    retrieve_top_k: int = Field(default=50, ge=1, le=200)
+    rerank_top_k: int = Field(default=8, ge=1, le=50)
     multihop_max_hops: int = Field(default=3, ge=1, le=6)
 
     # app exposure (kept on localhost by default — see SECURITY.md)
