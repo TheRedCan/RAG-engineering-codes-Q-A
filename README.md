@@ -19,8 +19,9 @@ Arabic OCR and bilingual embeddings) handles them if you place legally-obtained
 PDFs into `data/raw/` and add a manifest entry. The project does not
 redistribute either code. See [`NOTICE.md`](NOTICE.md).
 
-> Status: **v0.0.1 — scaffolding only.** Fetch stage works; parse / chunk /
-> embed / retrieve / generate stages are next.
+> Status: **v0.0.1 — ingest pipeline working end-to-end.** Stages `fetch`,
+> `parse`, `chunk`, and `embed` are implemented and tested. `retrieve` and
+> `generate` (with multi-hop + citation verifier) are next.
 
 ## What the system does
 

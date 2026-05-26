@@ -59,7 +59,10 @@ class Settings(BaseSettings):
     # CPU trades memory for throughput; 16-32 is a good range on 16 GB RAM.
     embed_dense_dim: int = Field(default=1024, ge=1, le=4096)
     embed_batch_size: int = Field(default=16, ge=1, le=256)
-    embed_max_length: int = Field(default=2048, ge=128, le=8192)  # tokens, BGE-M3 caps at 8192
+    # tokens, BGE-M3 caps at 8192. Default 1024 is well above our typical
+    # ~480-token chunk while keeping attention activations small enough for
+    # CPU runs on a 16 GB machine (attention memory is O(seq²)).
+    embed_max_length: int = Field(default=1024, ge=128, le=8192)
 
     # retrieval tuning
     retrieve_top_k: int = Field(default=30, ge=1, le=200)
