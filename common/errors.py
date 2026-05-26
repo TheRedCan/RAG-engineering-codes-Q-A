@@ -160,6 +160,20 @@ class LlmUnavailableError(GenerationError):
 
 
 @dataclass
+class LlmOutputError(GenerationError):
+    """The LLM produced output that could not be parsed into the expected
+    structured schema. Treated as a generation failure, not a model
+    unavailability — the server responded; the response just wasn't usable."""
+
+    reason: str
+    raw_output: str
+
+    def __str__(self) -> str:
+        preview = self.raw_output[:200].replace("\n", "\\n")
+        return f"LLM output unusable: {self.reason}. raw[:200]={preview!r}"
+
+
+@dataclass
 class CitationVerificationError(GenerationError):
     """A claim in the model's answer could not be grounded in any retrieved
     chunk. The answer is rejected rather than returned with bogus citations."""
