@@ -1,0 +1,35 @@
+# Local serving stack: just Qdrant for now.
+# Ollama is run outside docker on Windows for GPU access; if you ever want
+# a fully-containerised stack, add an ollama service here.
+#
+# Start:   docker compose -f serving/docker-compose.yml up -d
+# Stop:    docker compose -f serving/docker-compose.yml down
+# Logs:    docker compose -f serving/docker-compose.yml logs -f qdrant
+#
+# Storage:
+#   ../index/qdrant  is bind-mounted into /qdrant/storage so the vector
+#   index survives container restarts and is easy to back up / wipe.
+#   This directory is gitignored.
+
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.12.5
+    container_name: ec-rag-qdrant
+    restart: unless-stopped
+    ports:
+      # Bind to loopback only by default. Change to 0.0.0.0:6333 only when
+      # you have authentication in front of it (see SECURITY.md).
+      - "127.0.0.1:6333:6333"   # HTTP/REST + dashboard
+      - "127.0.0.1:6334:6334"   # gRPC
+    volumes:
+      - ../index/qdrant:/qdrant/storage
+    environment:
+      # Sane defaults; override via .env if you outgrow them.
+      QDRANT__SERVICE__GRPC_PORT: "6334"
+      QDRANT__LOG_LEVEL: "INFO"
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/6333 && echo -e 'GET /readyz HTTP/1.0\\r\\n\\r\\n' >&3 && head -n 1 <&3 | grep -q 200"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 10s
