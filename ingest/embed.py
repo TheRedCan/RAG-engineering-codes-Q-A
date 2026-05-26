@@ -35,6 +35,7 @@ from typing import TYPE_CHECKING, Any
 
 import typer
 
+from common.embedder import BgeM3
 from common.errors import (
     CollectionSchemaMismatchError,
     EmbedError,
@@ -219,53 +220,13 @@ def _upsert_batch(
 # ==================== embedding model ====================
 
 
-class _ModelHandle:
-    """Lazy holder so we don't pay BGE-M3's ~5 s load time during help-text
-    printing or unit tests that mock the encoder."""
-
-    def __init__(self) -> None:
-        self._model: Any = None
-
-    def get(self) -> Any:
-        if self._model is None:
-            settings = get_settings()
-            logger.info(
-                f"loading embedding model {settings.embed_model!r} on {settings.embed_device}"
-            )
-            from FlagEmbedding import BGEM3FlagModel  # noqa: PLC0415
-
-            # use_fp16 only on CUDA; CPU path uses FP32.
-            use_fp16 = settings.embed_device.startswith("cuda")
-            self._model = BGEM3FlagModel(
-                settings.embed_model,
-                use_fp16=use_fp16,
-                devices=[settings.embed_device],
-            )
-        return self._model
-
-
-_MODEL = _ModelHandle()
-
-
 def _encode_batch(texts: list[str]) -> tuple[list[list[float]], list[dict[int, float]]]:
-    """Encode a list of strings into (dense_vectors, sparse_vectors).
-    Sparse vectors are returned as {token_id: weight}."""
-    settings = get_settings()
-    model = _MODEL.get()
-    out = model.encode(
-        sentences=texts,
-        batch_size=len(texts),
-        max_length=settings.embed_max_length,
-        return_dense=True,
-        return_sparse=True,
-        return_colbert_vecs=False,
-    )
-    dense = [list(map(float, v)) for v in out["dense_vecs"]]
-    # FlagEmbedding returns lexical_weights as list[dict[str_token_id, float]].
-    # Normalize to dict[int, float].
-    sparse_raw = out["lexical_weights"]
-    sparse = [{int(k): float(v) for k, v in d.items()} for d in sparse_raw]
-    return dense, sparse
+    """Encode a batch of chunk texts into (dense_vectors, sparse_dicts).
+
+    Delegates to the shared ``BgeM3`` singleton so the model is loaded
+    exactly once per process even when the retrieval stage uses it too.
+    """
+    return BgeM3.get().encode(texts, max_length=get_settings().embed_max_length, with_sparse=True)
 
 
 # ==================== I/O ====================
