@@ -18,6 +18,7 @@ from common.logging import configure_logging, logger
 from common.models import RetrievedChunk
 from common.settings import get_settings
 from retrieval.hybrid import hybrid_search
+from retrieval.multihop import multihop_search
 from retrieval.rerank import rerank as rerank_chunks
 
 app = typer.Typer(add_completion=False, help="Query the engineering-codes index.")
@@ -34,6 +35,7 @@ def _print_results(query: str, results: list[RetrievedChunk], *, console: Consol
     table = Table(show_lines=True, expand=True)
     table.add_column("#", style="cyan", width=3, no_wrap=True)
     table.add_column("doc / pages", style="green", overflow="fold", max_width=28)
+    table.add_column("hop", style="blue", width=3, no_wrap=True)
     table.add_column("dense", style="yellow", width=7, no_wrap=True)
     table.add_column("sparse", style="yellow", width=7, no_wrap=True)
     table.add_column("rerank", style="magenta", width=7, no_wrap=True)
@@ -48,6 +50,7 @@ def _print_results(query: str, results: list[RetrievedChunk], *, console: Consol
         table.add_row(
             str(r.rank),
             f"{r.chunk.doc_id}\np.{pages}",
+            str(r.source_hop),
             f"{r.dense_score:.3f}" if r.dense_score is not None else "—",
             f"{r.sparse_score:.3f}" if r.sparse_score is not None else "—",
             f"{r.rerank_score:.3f}" if r.rerank_score is not None else "—",
@@ -68,6 +71,12 @@ def main(
     no_rerank: bool = typer.Option(
         False, "--no-rerank", help="Skip the cross-encoder reranking stage."
     ),
+    no_multihop: bool = typer.Option(
+        False, "--no-multihop", help="Skip cross-reference following (use plain hybrid)."
+    ),
+    max_hops: int | None = typer.Option(
+        None, "--max-hops", help="Override settings.multihop_max_hops."
+    ),
     log_level: str = typer.Option("INFO", "--log-level"),
 ) -> None:
     """Retrieve the top chunks for a query and print them."""
@@ -75,7 +84,10 @@ def main(
     console = Console()
 
     try:
-        candidates = hybrid_search(query, top_k=retrieve_k)
+        if no_multihop:
+            candidates = hybrid_search(query, top_k=retrieve_k)
+        else:
+            candidates = multihop_search(query, top_k=retrieve_k, max_hops=max_hops)
     except QdrantUnavailableError as e:
         logger.error(f"hard-fail: {e}")
         sys.exit(2)

@@ -117,6 +117,9 @@ class RetrievedChunk(BaseModel):
     sparse_score: float | None = None
     rerank_score: float | None = None
     rank: int = Field(ge=1)
+    # 0 = direct hit from the original query. 1+ = reached via N hops of
+    # cross-reference following in the multi-hop stage.
+    source_hop: int = Field(default=0, ge=0)
 
 
 class Citation(BaseModel):
