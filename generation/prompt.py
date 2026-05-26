@@ -47,8 +47,11 @@ SYSTEM_PROMPT = (
     "Use 1-based chunk indices in your `cites` arrays.\n"
     "3. If the provided chunks do not cover the question, return an empty "
     "`claims` list. Do NOT make up facts. Do NOT use outside knowledge.\n"
-    "4. Keep each claim short (1-2 sentences). Break complex answers into "
-    "multiple claims so each can be individually verified.\n"
+    "4. Produce as few claims as possible to fully answer the question — "
+    "typically 1 to 3, never more than 5. Each claim must state a DIFFERENT "
+    "fact; do NOT repeat the same statement under different numbers, and do "
+    "NOT pad the answer with redundant claims. If one claim already covers "
+    "the question, return exactly one claim.\n"
     "5. Quote numerical values, equation forms, and code references verbatim "
     "from the sources. Do not paraphrase numbers.\n"
     "6. Detect the language of the user's question and set `answer_language` "
@@ -150,6 +153,11 @@ def parse_llm_response(
 
     claims: list[Claim] = []
     used_chunk_ids: set[str] = set()
+    # Track normalized claim texts so we can drop accidental duplicates
+    # without raising — small LLMs (Qwen 7B in JSON mode) sometimes loop
+    # on the same template, and we prefer a clean deduped answer to a
+    # hard failure on the user's first query.
+    seen_norms: set[str] = set()
 
     for i, lc in enumerate(draft.claims, start=1):
         for cite in lc.cites:
@@ -160,6 +168,13 @@ def parse_llm_response(
                     ),
                     raw_output=raw,
                 )
+
+        # Normalize claim text for dedup: collapse whitespace + lowercase.
+        # A duplicate is dropped silently rather than raised — see comment above.
+        norm = " ".join(lc.text.split()).lower()
+        if norm in seen_norms:
+            continue
+        seen_norms.add(norm)
 
         # Resolve the chunk indices into full Citation objects.
         citations: list[Citation] = []

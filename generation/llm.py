@@ -95,7 +95,14 @@ def chat(
             {"role": "user", "content": user},
         ],
         "stream": False,
-        "options": {"temperature": temperature},
+        "options": {
+            "temperature": temperature,
+            # Penalize token repetition (default in Ollama is 1.1). The 1.3
+            # value here discourages the LLM from looping on the same
+            # claim template under strict JSON mode — observed on small
+            # models that "lock onto" one chunk and repeat it.
+            "repeat_penalty": 1.3,
+        },
     }
     if json_schema is not None:
         body["format"] = json_schema

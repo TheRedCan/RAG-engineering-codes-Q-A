@@ -139,6 +139,45 @@ def test_parse_rejects_claim_with_no_citations() -> None:
         parse_llm_response(raw, "Q?", _TWO_CHUNKS, hop_count=1)
 
 
+def test_parse_deduplicates_identical_claims() -> None:
+    """Small LLMs occasionally loop on the same claim template in JSON mode.
+    We silently drop verbatim duplicates rather than crash — but the
+    remaining unique claim must keep its citations intact."""
+    raw = json.dumps(
+        {
+            "answer_language": "en",
+            "claims": [
+                {"text": "Same fact stated once.", "cites": [1]},
+                {"text": "Same fact stated once.", "cites": [1]},
+                {"text": "Same fact stated once.", "cites": [1]},
+                {"text": "A genuinely different fact.", "cites": [2]},
+            ],
+        }
+    )
+    answer = parse_llm_response(raw, "Q?", _TWO_CHUNKS, hop_count=1)
+    # 4 input claims, 3 of which are duplicates -> 2 unique claims out.
+    assert len(answer.claims) == 2
+    assert answer.claims[0].text == "Same fact stated once."
+    assert answer.claims[1].text == "A genuinely different fact."
+
+
+def test_parse_dedup_is_whitespace_and_case_insensitive() -> None:
+    """Trailing whitespace / capitalization variants of the same claim
+    collapse — those are presentation differences, not semantic ones."""
+    raw = json.dumps(
+        {
+            "answer_language": "en",
+            "claims": [
+                {"text": "The base shear is V = Cs * W.", "cites": [1]},
+                {"text": "the base shear is V = Cs * W.  ", "cites": [1]},
+                {"text": "THE BASE SHEAR IS V = CS * W.", "cites": [1]},
+            ],
+        }
+    )
+    answer = parse_llm_response(raw, "Q?", _TWO_CHUNKS, hop_count=1)
+    assert len(answer.claims) == 1
+
+
 def test_draft_schema_round_trips() -> None:
     """The draft schema should accept the canonical shape we ask of the LLM."""
     obj = LlmDraftAnswer.model_validate(
