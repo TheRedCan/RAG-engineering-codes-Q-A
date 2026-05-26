@@ -55,6 +55,12 @@ class Settings(BaseSettings):
     chunk_overlap_chars: int = Field(default=200, ge=0, le=2000)
     chunk_min_size_chars: int = Field(default=100, ge=1)
 
+    # embed stage. BGE-M3's dense output is always 1024-dim. Batch size on
+    # CPU trades memory for throughput; 16-32 is a good range on 16 GB RAM.
+    embed_dense_dim: int = Field(default=1024, ge=1, le=4096)
+    embed_batch_size: int = Field(default=16, ge=1, le=256)
+    embed_max_length: int = Field(default=2048, ge=128, le=8192)  # tokens, BGE-M3 caps at 8192
+
     # retrieval tuning
     retrieve_top_k: int = Field(default=30, ge=1, le=200)
     rerank_top_k: int = Field(default=6, ge=1, le=50)

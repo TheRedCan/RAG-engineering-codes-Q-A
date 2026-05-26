@@ -98,6 +98,30 @@ class LanguageMismatchError(IngestError):
 # -------------------- Retrieval stage --------------------
 
 
+class EmbedError(IngestError):
+    """Base class for embed-stage failures (model loading, vector encoding,
+    Qdrant upsert)."""
+
+
+@dataclass
+class QdrantUnavailableError(EmbedError):
+    """The configured Qdrant instance is unreachable or rejected the handshake.
+    Raised at startup so we fail fast rather than after embedding 2 GB of text."""
+
+    host: str
+    port: int
+    reason: str
+
+
+@dataclass
+class CollectionSchemaMismatchError(EmbedError):
+    """An existing Qdrant collection has a different schema than this code
+    expects (vector size or named-vector layout). Will not silently migrate."""
+
+    collection: str
+    detail: str
+
+
 class RetrievalError(EngineeringCodesRagError):
     """Base class for retrieval-side failures."""
 
