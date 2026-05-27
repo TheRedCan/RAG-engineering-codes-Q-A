@@ -1,5 +1,6 @@
-"""Streamlit front-end: a bilingual question/answer UI with inline citation
-chips and expandable source-chunk panels.
+"""Streamlit front-end: a bilingual question/answer UI with citation panels.
 
-Not yet implemented.
+Entry point: ``app/main.py``. Launch with::
+
+    streamlit run app/main.py --server.address 127.0.0.1
 """

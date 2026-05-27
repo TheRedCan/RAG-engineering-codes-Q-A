@@ -24,6 +24,31 @@ def manifest_path(raw_dir: Path) -> Path:
     return raw_dir / _MANIFEST_FILENAME
 
 
+def append_manifest_entry(raw_dir: Path, entry: DocumentMeta) -> None:
+    """Add ``entry`` to the manifest, validating uniqueness.
+
+    Used by the Streamlit "Add document" page when an engineer uploads a
+    bring-your-own PDF. The file is written atomically (.tmp + replace)
+    so a Ctrl-C can't leave the manifest half-written.
+
+    Raises:
+        ConfigError: if the manifest is unreadable, malformed, or already
+            contains an entry with the same ``doc_id``.
+    """
+    existing = load_manifest(raw_dir) if manifest_path(raw_dir).exists() else []
+    if any(e.doc_id == entry.doc_id for e in existing):
+        raise ConfigError(
+            f"manifest already contains doc_id={entry.doc_id!r}; "
+            "remove the existing entry first or pick a different id"
+        )
+    existing.append(entry)
+    payload = [e.model_dump(mode="json", exclude_none=False) for e in existing]
+    path = manifest_path(raw_dir)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    tmp.replace(path)
+
+
 def load_manifest(raw_dir: Path) -> list[DocumentMeta]:
     """Read and validate the manifest. Raises ConfigError on any problem.
 
