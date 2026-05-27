@@ -12,9 +12,9 @@ existing pipeline stages:
 Failure policy:
 - Qdrant down -> hard fail (QdrantUnavailableError, exit 2)
 - Ollama down / model missing -> hard fail (LlmUnavailableError, exit 2)
-- LLM produced bad output -> hard fail (LlmOutputError, exit 1) because
-  this indicates either a model regression or a schema mismatch and we
-  want it loud
+- LLM produced bad output (unparseable / out-of-range citation) ->
+  clean empty-claims refusal, exit 0. We logged the failure but the
+  user sees a "no answer" message, not a stack trace
 - No relevant chunks (claims=[] from LLM) -> NOT a hard fail; the system
   returns an Answer with empty claims and we print "no answer" cleanly
 """
@@ -28,7 +28,11 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 
-from common.errors import LlmOutputError, LlmUnavailableError, QdrantUnavailableError
+from common.errors import (
+    LlmOutputError,
+    LlmUnavailableError,
+    QdrantUnavailableError,
+)
 from common.logging import configure_logging, logger
 from common.models import Answer, Language
 from common.settings import get_settings
@@ -39,6 +43,7 @@ from generation.prompt import (
     llm_response_schema,
     parse_llm_response,
 )
+from generation.translate import translate_query_for_retrieval
 from retrieval.hybrid import hybrid_search
 from retrieval.multihop import multihop_search
 from retrieval.rerank import rerank as rerank_chunks
@@ -62,17 +67,14 @@ def answer_question(
     # Cheapest health check first.
     health_check()
 
-    # Retrieval.
-    if use_multihop:
-        candidates = multihop_search(question, top_k=retrieve_k, max_hops=max_hops)
-    else:
-        candidates = hybrid_search(question, top_k=retrieve_k)
-    hop_count = max((c.source_hop for c in candidates), default=0) + 1
-
-    if not candidates:
-        logger.warning("retrieval returned no chunks; refusing without LLM call")
-        # English fallback is fine for an empty-retrieval refusal: there's
-        # no source content to detect a language from anyway.
+    # Cross-lingual support: if the question isn't English, translate it
+    # for retrieval, but keep the ORIGINAL question for the answer LLM
+    # so its language-detection rule fires and the user gets a reply in
+    # their own language. EN/UNKNOWN pass-through with no extra LLM call.
+    try:
+        retrieval_query, detected_lang = translate_query_for_retrieval(question)
+    except LlmOutputError as e:
+        logger.warning(f"query translation failed: {e}; refusing")
         return Answer(
             question=question,
             answer_language=Language.EN,
@@ -81,11 +83,33 @@ def answer_question(
             hop_count=1,
         )
 
-    # Rerank.
-    final_candidates = rerank_chunks(question, candidates, top_k=rerank_k)
+    # Retrieval.
+    if use_multihop:
+        candidates = multihop_search(retrieval_query, top_k=retrieve_k, max_hops=max_hops)
+    else:
+        candidates = hybrid_search(retrieval_query, top_k=retrieve_k)
+    hop_count = max((c.source_hop for c in candidates), default=0) + 1
+
+    if not candidates:
+        logger.warning("retrieval returned no chunks; refusing without LLM call")
+        # Fall back to the detected query language (if known) so the
+        # refusal stamp matches the user's input language.
+        fallback_lang = detected_lang if detected_lang != Language.UNKNOWN else Language.EN
+        return Answer(
+            question=question,
+            answer_language=fallback_lang,
+            claims=[],
+            used_chunks=[],
+            hop_count=1,
+        )
+
+    # Rerank against the translated query (cross-encoder is multilingual
+    # but consistent-language scoring is sharper).
+    final_candidates = rerank_chunks(retrieval_query, candidates, top_k=rerank_k)
     logger.info(f"prompting LLM with {len(final_candidates)} reranked chunks")
 
-    # LLM call.
+    # LLM call — pass the ORIGINAL question so the model answers in the
+    # user's language per system-prompt rule 7.
     user_prompt = build_user_prompt(question, final_candidates)
     raw = chat(
         system=SYSTEM_PROMPT,
@@ -93,8 +117,22 @@ def answer_question(
         json_schema=llm_response_schema(),
     )
 
-    # Parse + validate.
-    return parse_llm_response(raw, question, final_candidates, hop_count=hop_count)
+    # Parse + validate. A malformed LLM response (e.g. out-of-range
+    # citation index from a model that refused via garbage instead of
+    # an empty claims list) becomes a clean empty-claims refusal, not
+    # an exit-1 hard fail.
+    try:
+        return parse_llm_response(raw, question, final_candidates, hop_count=hop_count)
+    except LlmOutputError as e:
+        logger.warning(f"LLM produced unparseable output: {e}; refusing")
+        fallback_lang = detected_lang if detected_lang != Language.UNKNOWN else Language.EN
+        return Answer(
+            question=question,
+            answer_language=fallback_lang,
+            claims=[],
+            used_chunks=[],
+            hop_count=max(1, hop_count),
+        )
 
 
 def _print_answer(answer: Answer, *, console: Console) -> None:
@@ -149,9 +187,6 @@ def main(
     except (LlmUnavailableError, QdrantUnavailableError) as e:
         logger.error(f"hard-fail: {e}")
         sys.exit(2)
-    except LlmOutputError as e:
-        logger.error(f"LLM output unusable: {e}")
-        sys.exit(1)
 
     _print_answer(answer, console=console)
 

@@ -72,7 +72,15 @@ class Settings(BaseSettings):
     # blowing the context window.
     retrieve_top_k: int = Field(default=50, ge=1, le=200)
     rerank_top_k: int = Field(default=8, ge=1, le=50)
-    multihop_max_hops: int = Field(default=3, ge=1, le=6)
+    # Hard cap on how many candidates we feed into the cross-encoder. On
+    # CPU the reranker is the dominant cost (~1.2s/pair), so capping the
+    # input pool keeps latency under the per-query budget without
+    # measurable recall loss — sparse-only equation chunks still survive
+    # because the cap is applied AFTER RRF, not before.
+    rerank_input_cap: int = Field(default=30, ge=1, le=200)
+    # Default of 2 hops: hop-2 rarely surfaces new evidence on this
+    # corpus and costs ~25s per query. Override per-call when needed.
+    multihop_max_hops: int = Field(default=2, ge=1, le=6)
 
     # app exposure (kept on localhost by default — see SECURITY.md)
     app_host: IPvAnyAddress = Field(default="127.0.0.1")  # type: ignore[assignment]

@@ -53,6 +53,9 @@ Thumbs.db
 *.log
 logs/
 
+# --- Working / session docs (not part of the public repo) ---
+HANDOFF.md
+
 # --- Local notebooks ---
 *.ipynb
 .ipynb_checkpoints/

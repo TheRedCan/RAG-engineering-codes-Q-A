@@ -90,8 +90,20 @@ def rerank(
     if not candidates:
         return []
 
+    settings = get_settings()
     if top_k is None:
-        top_k = get_settings().rerank_top_k
+        top_k = settings.rerank_top_k
+
+    # Cap the candidate pool before cross-encoder scoring. The reranker
+    # is the dominant CPU cost; capping keeps latency in budget. The cap
+    # is applied AFTER RRF fusion, so sparse-only equation chunks that
+    # earned a high RRF score survive.
+    if len(candidates) > settings.rerank_input_cap:
+        logger.info(
+            f"rerank: capping {len(candidates)} candidates to {settings.rerank_input_cap} "
+            f"before scoring (keeping top-N by current rank)"
+        )
+        candidates = candidates[: settings.rerank_input_cap]
 
     pairs = [(query, c.chunk.text) for c in candidates]
     scores = BgeReranker.get().score(pairs)
