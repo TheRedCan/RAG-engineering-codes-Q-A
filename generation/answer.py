@@ -43,6 +43,7 @@ from generation.prompt import (
     llm_response_schema,
     parse_llm_response,
 )
+from generation.scope import verify_scope
 from generation.translate import translate_query_for_retrieval
 from retrieval.hybrid import hybrid_search
 from retrieval.multihop import multihop_search
@@ -122,7 +123,7 @@ def answer_question(
     # an empty claims list) becomes a clean empty-claims refusal, not
     # an exit-1 hard fail.
     try:
-        return parse_llm_response(raw, question, final_candidates, hop_count=hop_count)
+        answer = parse_llm_response(raw, question, final_candidates, hop_count=hop_count)
     except LlmOutputError as e:
         logger.warning(f"LLM produced unparseable output: {e}; refusing")
         fallback_lang = detected_lang if detected_lang != Language.UNKNOWN else Language.EN
@@ -133,6 +134,11 @@ def answer_question(
             used_chunks=[],
             hop_count=max(1, hop_count),
         )
+
+    # Scope verifier — narrow safety net for out-of-scope answers
+    # (wrong jurisdiction, made-up source, fabricated section number).
+    # Defaults to PASS on uncertainty; only refuses on explicit triggers.
+    return verify_scope(question, answer)
 
 
 def _print_answer(answer: Answer, *, console: Console) -> None:
