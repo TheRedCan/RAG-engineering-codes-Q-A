@@ -134,9 +134,7 @@ def test_unparseable_llm_output_becomes_clean_refusal() -> None:
     the user sees a "no answer" message, not a stack trace."""
     chunks = [_retrieved("a")]
     # Cite index 7 but we only show the model one chunk -> parser raises.
-    bad_raw = json.dumps(
-        {"answer_language": "en", "claims": [{"text": "X.", "cites": [7]}]}
-    )
+    bad_raw = json.dumps({"answer_language": "en", "claims": [{"text": "X.", "cites": [7]}]})
     with (
         patch("generation.answer.health_check"),
         patch("generation.answer.multihop_search", return_value=chunks),
@@ -156,9 +154,7 @@ def test_translation_runs_for_non_english_query() -> None:
     must still be the one passed to the answer LLM and stored on the
     Answer model (so the user gets Arabic prose back)."""
     chunks = [_retrieved("a")]
-    llm_raw = json.dumps(
-        {"answer_language": "ar", "claims": [{"text": "ادعاء.", "cites": [1]}]}
-    )
+    llm_raw = json.dumps({"answer_language": "ar", "claims": [{"text": "ادعاء.", "cites": [1]}]})
     arabic = "ما هي تركيبات الأحمال للتصميم الزلزالي في الكود الأمريكي ASCE 7-22؟"
 
     with (
