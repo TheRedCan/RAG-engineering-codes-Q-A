@@ -212,10 +212,20 @@ remote services with `QDRANT_HOST` / `OLLAMA_HOST` env vars.
 ## Running tests
 
 ```powershell
-pytest -m "not integration" --no-cov    # fast unit tests (~3s)
+pytest -m "not integration" --no-cov    # fast unit tests (~4s, 164 cases)
 pytest                                  # full suite (requires Qdrant + Ollama)
-python -m scripts.smoke_queries         # 6-query regression battery
+python -m scripts.smoke_queries         # 6-query informal regression battery
+python -m eval.run                      # 16-case structured eval with pass/fail
+python -m eval.run --ids cs-coefficient # single case for quick iteration
 ```
+
+The eval harness ([`eval/`](eval/)) measures structural correctness over
+hand-curated test cases — language match, citation requirements, required
+/ forbidden keywords, refusal behavior, latency budget. Results write to
+`eval/results/{UTC-timestamp}.json` (gitignored) for trend comparison.
+Exit code is 0 iff every case passes, so the harness can be a pre-release
+gate or used with `git bisect`. Full run takes ~20 min on the baseline
+laptop. No LLM-as-judge calls — every metric is deterministic.
 
 ## Repo layout
 

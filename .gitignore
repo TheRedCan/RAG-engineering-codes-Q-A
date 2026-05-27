@@ -56,6 +56,9 @@ logs/
 # --- Working / session docs (not part of the public repo) ---
 HANDOFF.md
 
+# --- Eval results (per-machine, large, regenerated) ---
+eval/results/
+
 # --- Local notebooks ---
 *.ipynb
 .ipynb_checkpoints/

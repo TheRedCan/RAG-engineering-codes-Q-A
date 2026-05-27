@@ -1,0 +1,35 @@
+// Engineering-codes RAG eval dataset. One JSONL object per line.
+// Schema: eval/dataset.py:TestCase
+// Adding a case = appending one line; the runner picks it up automatically.
+
+{"id": "elf-base-shear", "question": "How is the seismic base shear calculated under the equivalent lateral force procedure?", "expected_language": "en", "expected_behavior": "answer", "must_cite_doc_ids": ["fema-p-2082-vol1-2020"], "must_mention": ["base shear"], "must_not_mention": ["Egyptian Code"], "max_latency_s": 240.0, "notes": "Pure equation extraction. V = Cs*W is the canonical answer."}
+
+{"id": "cs-coefficient", "question": "How is the seismic response coefficient Cs calculated?", "expected_language": "en", "expected_behavior": "answer", "must_cite_doc_ids": [], "must_mention": ["Cs"], "must_not_mention": ["Egyptian Code"], "max_latency_s": 240.0, "notes": "Known-hard query (task #16) — model sometimes lands on Ch.17 isolation Cs instead of Ch.12 ELF Cs. We assert it at least mentions Cs and grounds in some chunk, not that it lands on the right Cs variant."}
+
+{"id": "ssi-definition", "question": "What is soil-structure interaction and when must it be considered?", "expected_language": "en", "expected_behavior": "answer", "must_cite_doc_ids": ["fema-p-2082-vol1-2020"], "must_mention": ["soil"], "must_not_mention": [], "max_latency_s": 240.0, "notes": "Conceptual / definition. Should ground in FEMA P-2082 SSI sections."}
+
+{"id": "asce-12-8-1", "question": "What does ASCE 7-22 Section 12.8.1 require for the equivalent lateral force procedure?", "expected_language": "en", "expected_behavior": "answer", "must_cite_doc_ids": [], "must_mention": ["12.8"], "must_not_mention": ["Egyptian Code"], "max_latency_s": 240.0, "notes": "Specific section lookup. Answer should reference §12.8.1 explicitly."}
+
+{"id": "load-combinations-en", "question": "What are the load combinations for seismic design in ASCE 7-22?", "expected_language": "en", "expected_behavior": "answer", "must_cite_doc_ids": [], "must_mention": ["1.2"], "must_not_mention": ["Egyptian Code"], "max_latency_s": 240.0, "notes": "Combos look like '1.2D + Ev + Eh + L + 0.2S' etc. The '1.2' coefficient is the most stable marker."}
+
+{"id": "load-combinations-ar", "question": "ما هي تركيبات الأحمال للتصميم الزلزالي؟", "expected_language": "ar", "expected_behavior": "answer", "must_cite_doc_ids": [], "must_mention": [], "must_not_mention": ["Egyptian Code"], "max_latency_s": 240.0, "notes": "Arabic version. Translation pipeline should get English chunks; LLM should answer in Arabic. Don't constrain must_mention because Arabic phrasing varies."}
+
+{"id": "water-resilience", "question": "What design considerations affect water and wastewater system resilience?", "expected_language": "en", "expected_behavior": "answer", "must_cite_doc_ids": ["nist-tn-2209-2022"], "must_mention": ["water"], "must_not_mention": ["Egyptian Code"], "max_latency_s": 240.0, "notes": "Different sub-corpus (NIST). Must cite the NIST doc, not fall back to FEMA."}
+
+{"id": "ecp-out-of-scope", "question": "What is the procedure for designing a steel moment frame in the Egyptian Code of Practice?", "expected_language": "en", "expected_behavior": "refuse", "must_cite_doc_ids": [], "must_mention": [], "must_not_mention": [], "max_latency_s": 240.0, "notes": "Out-of-scope: ECP is bring-your-own and not in the demo corpus. System should refuse rather than tangentially answer with FEMA content."}
+
+{"id": "diaphragm-design", "question": "What are the requirements for diaphragm design under ASCE 7-22?", "expected_language": "en", "expected_behavior": "answer", "must_cite_doc_ids": [], "must_mention": ["diaphragm"], "must_not_mention": ["Egyptian Code"], "max_latency_s": 240.0, "notes": "Specific topic in Chapter 12. Should cite a FEMA doc."}
+
+{"id": "site-class", "question": "How is the site class determined for seismic design?", "expected_language": "en", "expected_behavior": "answer", "must_cite_doc_ids": [], "must_mention": ["site"], "must_not_mention": ["Egyptian Code"], "max_latency_s": 240.0, "notes": "Conceptual + procedural. ASCE 7-22 Chapter 20."}
+
+{"id": "response-spectrum", "question": "How is the design response spectrum constructed in ASCE 7-22?", "expected_language": "en", "expected_behavior": "answer", "must_cite_doc_ids": [], "must_mention": ["spectrum"], "must_not_mention": ["Egyptian Code"], "max_latency_s": 240.0, "notes": "ASCE 7-22 §11.4. Either Cs-related or spectrum-construction chunks acceptable."}
+
+{"id": "fundamental-period", "question": "How is the fundamental period of vibration approximated?", "expected_language": "en", "expected_behavior": "answer", "must_cite_doc_ids": [], "must_mention": ["period"], "must_not_mention": ["Egyptian Code"], "max_latency_s": 240.0, "notes": "ASCE 7-22 §12.8.2.1 (Ta = Ct * hn^x)."}
+
+{"id": "nehrp-purpose", "question": "What is the purpose of the NEHRP provisions?", "expected_language": "en", "expected_behavior": "answer", "must_cite_doc_ids": ["fema-p-2082-vol1-2020"], "must_mention": ["NEHRP"], "must_not_mention": [], "max_latency_s": 240.0, "notes": "High-level / preamble-style. Should ground in FEMA P-2082 front matter."}
+
+{"id": "arabic-conceptual", "question": "ما هو مفهوم التصميم الزلزالي القائم على الأداء؟", "expected_language": "ar", "expected_behavior": "answer", "must_cite_doc_ids": [], "must_mention": [], "must_not_mention": ["Egyptian Code"], "max_latency_s": 240.0, "notes": "Performance-based seismic design — conceptual question in Arabic. Translation pipeline + Arabic response."}
+
+{"id": "made-up-section", "question": "What does ASCE 7-22 Section 99.99.99 require?", "expected_language": "en", "expected_behavior": "refuse", "must_cite_doc_ids": [], "must_mention": [], "must_not_mention": [], "max_latency_s": 240.0, "notes": "Non-existent section. Either no chunks retrieved (clean refusal) or model should refuse rather than hallucinate."}
+
+{"id": "made-up-author", "question": "What does the Smith and Jones 2024 paper say about base shear?", "expected_language": "en", "expected_behavior": "refuse", "must_cite_doc_ids": [], "must_mention": [], "must_not_mention": [], "max_latency_s": 240.0, "notes": "Fake source. Model must not fabricate; must refuse."}
