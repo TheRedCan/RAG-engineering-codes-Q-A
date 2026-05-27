@@ -8,6 +8,7 @@ We test in three layers:
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -115,7 +116,7 @@ def _query_points_response(points: list[MagicMock]) -> MagicMock:
 
 
 @pytest.fixture(autouse=True)
-def _reset_embedder() -> None:
+def _reset_embedder() -> Iterator[None]:
     """Ensure no real model leaks across tests."""
     from common.embedder import BgeM3  # noqa: PLC0415
 

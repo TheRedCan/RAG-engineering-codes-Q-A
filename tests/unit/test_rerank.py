@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -29,7 +30,7 @@ def _make_candidate(chunk_id: str, rank: int, text: str = "irrelevant text") -> 
 
 
 @pytest.fixture(autouse=True)
-def _reset_reranker() -> None:
+def _reset_reranker() -> Iterator[None]:
     BgeReranker.reset_for_tests()
     yield
     BgeReranker.reset_for_tests()

@@ -22,6 +22,7 @@ from ingest.chunk import (
     _concatenate_pages,
     _find_snap_boundary,
     _make_chunk_id,
+    _PageRange,
     _pages_for_range,
     _split_to_chunks,
     chunk_all,
@@ -89,11 +90,8 @@ def test_pages_for_range_handles_overlap() -> None:
     assert _pages_for_range(ranges, 199, 201) == [2, 3]
 
 
-def _make_range(page_number: int, start: int, end: int) -> object:
-    """Helper to build a _PageRange without exposing the private class name
-    in test signatures."""
-    from ingest.chunk import _PageRange  # noqa: PLC0415
-
+def _make_range(page_number: int, start: int, end: int) -> _PageRange:
+    """Helper to build a _PageRange."""
     return _PageRange(page_number=page_number, start=start, end=end)
 
 
@@ -103,7 +101,7 @@ def test_split_to_chunks_respects_target_size_and_overlap() -> None:
     chunks = list(
         _split_to_chunks(
             text,
-            ranges,  # type: ignore[arg-type]
+            ranges,
             target_chars=400,
             overlap_chars=50,
             min_size_chars=100,
@@ -128,7 +126,7 @@ def test_split_to_chunks_drops_under_min_size() -> None:
     chunks = list(
         _split_to_chunks(
             text,
-            ranges,  # type: ignore[arg-type]
+            ranges,
             target_chars=2048,
             overlap_chars=200,
             min_size_chars=100,

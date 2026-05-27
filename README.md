@@ -23,8 +23,12 @@ handles them. The project does not redistribute either code. See
 > Status: **functional end-to-end.** All pipeline stages (fetch → parse →
 > chunk → embed → hybrid retrieve → rerank → multi-hop → generate) are
 > implemented, tested, and wired up behind a Streamlit chat UI plus a
-> bring-your-own ingest UI. 128 unit tests passing, `mypy --strict` +
-> `ruff` clean, CI green. Known limitations documented at the bottom.
+> bring-your-own ingest UI. 164 unit tests passing, `mypy --strict` +
+> `ruff` clean, CI green. Eval baseline: 12/16 on the structured
+> regression set. Known limitations documented at the bottom.
+
+![Streamlit chat UI](docs/screenshots/chat-ui.png)
+*The chat UI answering an English question with cited FEMA / NIST sources.*
 
 ## What the system does
 
