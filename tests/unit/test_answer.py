@@ -64,7 +64,6 @@ def test_happy_path_returns_canonical_answer() -> None:
         patch("generation.answer.multihop_search", return_value=chunks) as mh_mock,
         patch("generation.answer.rerank_chunks", return_value=chunks) as rr_mock,
         patch("generation.answer.chat", return_value=llm_raw) as chat_mock,
-        patch("generation.answer.verify_scope", side_effect=lambda _q, a: a),
     ):
         out = answer_question("Q?", use_multihop=True)
 
@@ -87,7 +86,6 @@ def test_no_multihop_path_uses_hybrid_only() -> None:
         patch("generation.answer.multihop_search") as mh_mock,
         patch("generation.answer.rerank_chunks", return_value=chunks),
         patch("generation.answer.chat", return_value=llm_raw),
-        patch("generation.answer.verify_scope", side_effect=lambda _q, a: a),
     ):
         answer_question("Q?", use_multihop=False)
 
@@ -124,7 +122,6 @@ def test_hop_count_floor_one() -> None:
         patch("generation.answer.multihop_search", return_value=chunks),
         patch("generation.answer.rerank_chunks", return_value=chunks),
         patch("generation.answer.chat", return_value=llm_raw),
-        patch("generation.answer.verify_scope", side_effect=lambda _q, a: a),
     ):
         out = answer_question("Q?")
 
@@ -169,7 +166,6 @@ def test_translation_runs_for_non_english_query() -> None:
         patch("generation.answer.multihop_search", return_value=chunks) as mh_mock,
         patch("generation.answer.rerank_chunks", return_value=chunks) as rr_mock,
         patch("generation.answer.chat", return_value=llm_raw),
-        patch("generation.answer.verify_scope", side_effect=lambda _q, a: a),
     ):
         out = answer_question(arabic, use_multihop=True)
 
@@ -202,7 +198,6 @@ def test_translation_pass_through_for_english_query() -> None:
         patch("generation.answer.multihop_search", return_value=chunks) as mh_mock,
         patch("generation.answer.rerank_chunks", return_value=chunks),
         patch("generation.answer.chat", return_value=llm_raw),
-        patch("generation.answer.verify_scope", side_effect=lambda _q, a: a),
     ):
         answer_question(english_q)
 
