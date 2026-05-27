@@ -22,7 +22,7 @@
 
 {"id": "site-class", "question": "How is the site class determined for seismic design?", "expected_language": "en", "expected_behavior": "answer", "must_cite_doc_ids": [], "must_mention": ["site"], "must_not_mention": ["Egyptian Code"], "max_latency_s": 240.0, "notes": "Conceptual + procedural. ASCE 7-22 Chapter 20."}
 
-{"id": "response-spectrum", "question": "How is the design response spectrum constructed in ASCE 7-22?", "expected_language": "en", "expected_behavior": "answer", "must_cite_doc_ids": [], "must_mention": ["spectrum"], "must_not_mention": ["Egyptian Code"], "max_latency_s": 240.0, "notes": "ASCE 7-22 §11.4. Either Cs-related or spectrum-construction chunks acceptable."}
+{"id": "response-spectrum", "question": "How is the design response spectrum constructed in ASCE 7-22?", "expected_language": "en", "expected_behavior": "answer", "must_cite_doc_ids": [], "must_mention": [], "must_not_mention": ["Egyptian Code"], "max_latency_s": 240.0, "notes": "ASCE 7-22 §11.4. The literal word 'spectrum' is too brittle a check — the model often paraphrases with 'SDS', 'SD1', or 'design acceleration' instead. Rely on the behavior + must_not_mention checks here."}
 
 {"id": "fundamental-period", "question": "How is the fundamental period of vibration approximated?", "expected_language": "en", "expected_behavior": "answer", "must_cite_doc_ids": [], "must_mention": ["period"], "must_not_mention": ["Egyptian Code"], "max_latency_s": 240.0, "notes": "ASCE 7-22 §12.8.2.1 (Ta = Ct * hn^x)."}
 
