@@ -47,7 +47,7 @@ dev = [
     "respx>=0.21,<1",        # mock httpx in tests
     "fpdf2>=2.7,<3",         # generate tiny PDFs on the fly for parser tests
     "ruff>=0.5,<1",
-    "mypy>=1.10,<2",
+    "mypy>=1.10,<3",
     "pip-audit>=2.7,<3",
     "pre-commit>=3.7,<4",
 ]
