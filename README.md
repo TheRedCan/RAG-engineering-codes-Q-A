@@ -78,6 +78,97 @@ and tests. Stages communicate via JSONL files on disk under
 `data/processed/`, so any stage can be re-run in isolation against the prior
 stage's output. Stage I/O schemas live in [`common/models.py`](common/models.py).
 
+### Ingest pipeline — how a PDF becomes a queryable index
+
+The ingest pipeline is four stages that each read from disk, write to disk,
+and validate their inputs against strict Pydantic schemas. A failure in one
+stage stops that document — never the whole batch — and writes a typed
+exception with full context to the log. Stages are idempotent: re-running
+on an already-processed document is a no-op.
+
+**1. fetch — download + integrity-pin** ([`ingest/fetch.py`](ingest/fetch.py))
+
+- Reads the document list from `data/raw/manifest.json` (validated as a
+  list of `DocumentMeta` Pydantic models — bad entries fail loudly at
+  parse time, never mid-download).
+- For each entry, streams the source PDF to `data/raw/{doc_id}.pdf`
+  while computing SHA-256 in the same loop (no separate hash pass).
+- Cross-checks the computed hash against `data/raw/manifest.lock.json`:
+  - First-ever download → pin the hash to the lock file.
+  - Hash matches lock → accept the file.
+  - **Hash disagrees → delete the file and raise `ChecksumMismatchError`.**
+    Treated as a tamper signal; aborts the run rather than silently
+    continuing with possibly-corrupt content.
+- Transient HTTP failures retry with exponential backoff via `tenacity`;
+  retries log a WARNING each, never silent.
+- Already-present files are re-verified, not skipped. Catches local file
+  rot and detects upstream content changes against the pinned hash.
+
+**2. parse — PDF → per-page JSONL** ([`ingest/parse.py`](ingest/parse.py))
+
+- Opens each PDF with `pypdfium2` (BSD-3, no AGPL surprises like PyMuPDF).
+- Extracts text per page with 1-indexed page numbers preserved as the
+  primary citation key — every chunk, citation, and answer can trace back
+  to specific source pages.
+- Detects language per page with `langdetect` (seeded for reproducibility).
+  A document's majority language must match the manifest's
+  `expected_language`; mismatch raises `LanguageMismatchError` and the
+  file is excluded rather than silently mislabeled in the index.
+- Empty / zero-page PDFs raise `ParseError` (collected per-doc, never
+  aborts the batch).
+- Output: `data/processed/parsed/{doc_id}.jsonl`, one `ParsedPage`
+  record per line.
+
+**3. chunk — pages → retrieval units** ([`ingest/chunk.py`](ingest/chunk.py))
+
+- Concatenates non-empty pages into one buffer while tracking each
+  page's `(start, end)` char-offset range. This is what lets a single
+  chunk cite multiple pages when it spans a page boundary.
+- Walks a sliding window: `chunk_target_chars=2048` (~512 tokens for
+  English) with `chunk_overlap_chars=200` overlap so context isn't lost
+  at boundaries.
+- Snaps each window's end to the nearest paragraph break (`\n\n`),
+  sentence end (`.`), or line break — within the last 20% of the window
+  — so chunks don't cut mid-sentence.
+- Maps every chunk back to its source page numbers using the offset
+  ranges from step 1. A chunk covering bytes 1900–3900 might list pages
+  `[7, 8]`; the answer's citations will say `p.7-8` accordingly.
+- Re-detects each chunk's language (a chunk can span pages of different
+  languages — important for bilingual PDFs).
+- Output: `data/processed/chunks/{doc_id}.jsonl`, one `Chunk` record
+  per line with a stable hash-based `chunk_id`.
+
+**4. embed — chunks → Qdrant** ([`ingest/embed.py`](ingest/embed.py))
+
+- Loads BGE-M3 once per process (cached under `~/.cache/huggingface/`
+  after first run; ~2 GB).
+- For each chunk, produces in one model pass:
+  - **dense vector** — 1024-dim semantic embedding for cosine similarity
+  - **sparse vector** — learned lexical weights (smart BM25-style),
+    which is what lets equation-heavy chunks survive even when their
+    dense embedding is far from the natural-language query
+- Upserts into a Qdrant collection with **named vectors** (`dense` and
+  `sparse` as separate named slots), so the retrieval stage can run
+  both searches and fuse with reciprocal-rank fusion.
+- Per-doc **resume**: before encoding, scrolls the collection for
+  existing chunk_ids and skips anything already indexed. Re-running
+  `embed` on a fully-indexed corpus is a ~1s no-op.
+- Hard-fails on:
+  - `QdrantUnavailableError` — server down or unreachable, raised at
+    startup not at first upsert
+  - `CollectionSchemaMismatchError` — existing collection has different
+    vector dims or named-vector layout; refuses to silently migrate
+- Soft-fails (per-batch, logged + collected) on encode/upsert errors so
+  one bad batch doesn't kill the whole document.
+
+**Engineer-facing UI for ingest.** The Streamlit "Add document" page
+(`app/pages/2_Add_document.py`) wraps the four-stage CLI flow into a
+form: upload PDF, fill 4 metadata fields, click Ingest. The file is
+saved to `data/raw/`, a manifest entry is appended atomically, then
+fetch (hash-pin only — file's already on disk) → parse → chunk → embed
+run sequentially with live status. New chunks become queryable on the
+chat page as soon as `embed` finishes.
+
 ## Tech stack
 
 | Layer | Tool | Why |
